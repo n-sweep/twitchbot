@@ -12,8 +12,8 @@ import webbrowser as wb
 
 ff = wb.get('/mnt/c/"Program Files"/"Mozilla Firefox"/firefox.exe %s')
 alpha = 'abcdefghijklmnopqrstuvwxyz1234567890'
-d = os.path.dirname(os.path.realpath(__file__))
-fp = os.path.join(d, '../conf/config.json')
+d = os.path.dirname(os.getcwd())
+fp = os.path.join(d, 'conf/config.json')
 
 with open(fp, 'r+') as f:
     config = json.load(f)
@@ -70,7 +70,6 @@ async def authorize_user(response_type, scope, endpoint, open_browser=False):
 
     async with aiohttp.ClientSession() as session:
         async with session.get('https://id.twitch.tv/oauth2/authorize', params=payload) as r:
-            print(r.url)
             if open_browser:
                 ff.open(str(r.url))
             else:

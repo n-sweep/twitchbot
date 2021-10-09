@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import json
 import hmac
 import hashlib
@@ -52,9 +53,12 @@ class Endpoint(web.Application):
             f.seek(0)
             json.dump(conf, f, indent=4)
             f.truncate()
+        print('token recorded')
         return web.Response(text=text)
 
 
 if __name__ == '__main__':
-    e = Endpoint('conf/config.json')
+    par = os.path.dirname(os.getcwd())
+    fp = os.path.join(par, 'conf/config.json')
+    e = Endpoint(fp)
     e.run()
