@@ -13,7 +13,7 @@ import webbrowser as wb
 ff = wb.get('/mnt/c/"Program Files"/"Mozilla Firefox"/firefox.exe %s')
 alpha = 'abcdefghijklmnopqrstuvwxyz1234567890'
 d = os.path.dirname(os.path.realpath(__file__))
-fp = os.path.join(d, 'config.json')
+fp = os.path.join(d, '../conf/config.json')
 
 with open(fp, 'r+') as f:
     config = json.load(f)

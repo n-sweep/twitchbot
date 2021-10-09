@@ -10,4 +10,4 @@ RUN pip3 install -r twitchbot/conf/requirements.txt
 
 COPY ./conf/config.json ./twitchbot/conf/
 
-CMD ["python3", "twitchbot/run.py"]
+ENTRYPOINT ["python3", "twitchbot/run.py"]

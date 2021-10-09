@@ -20,5 +20,5 @@ class Bot(commands.Bot):
     async def hello(self, ctx: commands.Context):
         await ctx.send(f'Hello {ctx.author.name}!')
 
-bot = Bot('config.json')
+bot = Bot('conf/config.json')
 bot.run()

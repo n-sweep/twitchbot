@@ -56,5 +56,5 @@ class Endpoint(web.Application):
 
 
 if __name__ == '__main__':
-    e = Endpoint('config.json')
+    e = Endpoint('conf/config.json')
     e.run()
