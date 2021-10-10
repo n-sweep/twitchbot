@@ -5,7 +5,7 @@ import json
 import hmac
 import hashlib
 from aiohttp import web
-from oauth import verify_user_access_token, verify_webhook_signature
+from auth.oauth import verify_user_access_token, verify_webhook_signature
 
 text = """hello, friend\n\nyou may close this window now"""
 
