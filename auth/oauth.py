@@ -12,8 +12,8 @@ import webbrowser as wb
 
 ff = wb.get('/mnt/c/"Program Files"/"Mozilla Firefox"/firefox.exe %s')
 alpha = 'abcdefghijklmnopqrstuvwxyz1234567890'
-d = os.path.dirname(os.getcwd())
-fp = os.path.join(d, 'conf/config.json')
+d = os.path.dirname(os.path.realpath(__file__))
+fp = os.path.join(d, '../conf/config.json')
 
 with open(fp, 'r+') as f:
     config = json.load(f)
@@ -24,32 +24,39 @@ def generate_secret(n=24):
     return ''.join(secret)
 
 
-async def verify_webhook_signature(request, secret):
-    signature = request.headers['Twitch-Eventsub-Message-Signature'].replace("sha256=", '')
-    msg_id = request.headers['Twitch-Eventsub-Message-Id']
-    msg_ts = request.headers['Twitch-Eventsub-Message-Timestamp']
-    body = await request.text()
-    hmac_msg = (msg_id + msg_ts + body)
+def get_app_access_token():
+    """
+        OAuth client credentials flow - returns app access token
+    """
+    payload = {
+        'client_id': config['CLIENT_ID'],
+        'client_secret': config['CLIENT_SECRET'],
+        'grant_type': 'client_credentials'
+    }
 
-    expected_signature = hmac.new(
-        secret.encode(),
-        msg=hmac_msg.encode(),
-        digestmod=hashlib.sha256
-    ).hexdigest()
+    r = requests.post('https://id.twitch.tv/oauth2/token', payload)
 
-    return signature == expected_signature
+    token = r.json()['access_token']
 
-async def get_irc_token(open_browser=False):
-    response_type = 'token'
-    scope = 'user:edit chat:read chat:edit'
-    endpoint = 'irc'
-    return await authorize_user(response_type, scope, endpoint, open_browser)
+    with open(fp, 'r+') as f:
+                conf = json.load(f)
+                conf['APP_TOKEN'] = token
+                f.seek(0)
+                json.dump(conf, f, indent=4)
+                f.truncate()
 
 
 async def get_access_token(open_browser=False):
     response_type = 'code'
     scope = 'user:edit chat:read chat:edit'
     endpoint = 'auth'
+    return await authorize_user(response_type, scope, endpoint, open_browser)
+
+
+async def get_irc_token(open_browser=False):
+    response_type = 'token'
+    scope = 'user:edit chat:read chat:edit'
+    endpoint = 'irc'
     return await authorize_user(response_type, scope, endpoint, open_browser)
 
 
@@ -77,7 +84,11 @@ async def authorize_user(response_type, scope, endpoint, open_browser=False):
 
     return state
 
+
 async def verify_user_access_token(code):
+    """
+        Verifies the new token request came from me
+    """
     payload = {
         'client_id': config['CLIENT_ID'],
         'client_secret': config['CLIENT_SECRET'],
@@ -90,26 +101,49 @@ async def verify_user_access_token(code):
         async with session.post('https://id.twitch.tv/oauth2/token', params=payload) as r:
             return await r.json()
 
-def get_app_access_token():
+
+async def validate_access_token():
     """
-        OAuth client credentials flow - returns app access token
+        Validates an existing access token
+    """
+    headers = {'Authorization': f'Bearer {config["ACCESS_TOKEN"]}'}
+    async with aiohttp.ClientSession() as session:
+        async with session.get('https://id.twitch.tv/oauth2/validate', headers=headers) as r:
+            return r
+
+
+async def verify_webhook_signature(request, secret):
+    signature = request.headers['Twitch-Eventsub-Message-Signature'].replace("sha256=", '')
+    msg_id = request.headers['Twitch-Eventsub-Message-Id']
+    msg_ts = request.headers['Twitch-Eventsub-Message-Timestamp']
+    body = await request.text()
+    hmac_msg = (msg_id + msg_ts + body)
+
+    expected_signature = hmac.new(
+        secret.encode(),
+        msg=hmac_msg.encode(),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    return signature == expected_signature
+
+
+async def refresh_token():
+    """
+        Attempts to refresh the current access token
     """
     payload = {
+        'grant_type': 'refresh_token',
+        'refresh_token': config['TOKEN_METADATA']['refresh_token'],
         'client_id': config['CLIENT_ID'],
-        'client_secret': config['CLIENT_SECRET'],
-        'grant_type': 'client_credentials'
+        'client_secret': config['CLIENT_SECRET']
     }
-
-    r = requests.post('https://id.twitch.tv/oauth2/token', payload)
-
-    token = r.json()['access_token']
-
-    with open(fp, 'r+') as f:
-                conf = json.load(f)
-                conf['APP_TOKEN'] = token
-                f.seek(0)
-                json.dump(conf, f, indent=4)
-                f.truncate()
+    async with aiohttp.ClientSession() as session:
+        async with session.post('https://id.twitch.tv/oauth2/token', params=payload) as r:
+            if r.status == 200:
+                return await r.json()
+            else:
+                return r.status
 
 
 async def revoke(token):

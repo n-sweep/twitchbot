@@ -15,10 +15,7 @@ from twitchio.errors import AuthenticationError
 sys.path.insert(0, os.path.abspath('..'))
 
 from utils import Timer, Periodic
-# from pyHS100 import SmartBulb
 
-
-# bulb = SmartBulb('192.168.0.246')
 
 light_colors = {
     'red': 1,
@@ -53,24 +50,7 @@ class Bot(commands.Bot):
 
         self.load_cogs()
         self.discord_timer = Periodic(1200, self.discord_periodic)
-        # bulb.set_color_temp(6500)
 
-    async def loop_start(self):
-        print(self.nick)
-        try:
-            await super().start()
-        except:
-            pass
-
-    async def party(self, i, t):
-        self.party_switch = True
-        for _ in range(int(t/i)):
-            if not self.party_switch:
-                break
-            c = randint(0, 360)
-            # bulb.set_hsv(c, 100, 100)
-            await sleep(i)
-        # bulb.set_color_temp(6500)
 
     def load_cogs(self):
         for c in self.config.get('COGS'): # ['maincog', 'admincog']
@@ -133,38 +113,3 @@ class Bot(commands.Bot):
         else:
             await ctx.send(self.config.get('MUSIC'))
 
-    @commands.command(name='light', aliases=['color', 'colour'])
-    async def light(self, ctx, *args):
-        'Changes the color of my TPLink LB130 smart bulb'
-
-        if args:
-            if 'reset' in args[0].lower() and ctx.author.is_mod:
-                if self.light_timer:
-                    self.light_timer.cancel()
-                if self.party_switch:
-                    self.party_switch = False
-                # bulb.set_color_temp(6500)
-                return
-            
-            if 'party' in args[0].lower():
-                t = int(args[1]) if len(args) > 1 and args[1].isdigit() else 10
-                await ctx.send('Wimmy wham wham wozzle! Party on dudes!')
-                await self.party(0.25, t)
-                return
-
-            # TODO: clean up this junk
-            try: 
-                color = int(float(args[0]))
-            except:
-                if args[0] in light_colors:
-                    color = light_colors[args[0]]
-        else:
-            color = randint(0,360)
-
-        if 0 <= color <= 360:
-            # bulb.set_hsv(color, 100, 100)
-            if self.light_timer:
-                self.light_timer.cancel()
-            # self.light_timer = Timer(600, lambda: bulb.set_color_temp(6500))
-        else:
-            await ctx.send(f"@{ctx.author.name} !light can take an integer value from 0 to 360.")
