@@ -1,3 +1,4 @@
 twitchio
 requests
 numpy
+python-kasa

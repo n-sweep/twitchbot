@@ -109,7 +109,7 @@ async def validate_access_token():
     headers = {'Authorization': f'Bearer {config["ACCESS_TOKEN"]}'}
     async with aiohttp.ClientSession() as session:
         async with session.get('https://id.twitch.tv/oauth2/validate', headers=headers) as r:
-            return r
+            return (r.status, await r.json())
 
 
 async def verify_webhook_signature(request, secret):
@@ -169,11 +169,27 @@ async def revoke(token):
                             headers=headers)
 
 
-async def main():
+async def update_token():
     # state = await verify_user_access_token(config['ACCESS_TOKEN'])
     # state = await get_irc_token(open_browser=True)
-    t = await get_access_token()
-    print(t)
+    # t = await get_access_token()
+    r = await refresh_token()
+    
+    with open(fp, 'r+') as f:
+        conf = json.load(f)
+        conf['ACCESS_TOKEN'] = r['access_token']
+        conf['TOKEN_METADATA'] = r
+        f.seek(0)
+        json.dump(conf, f, indent=4)
+        f.truncate()
+
+
+async def main():
+    #r = await validate_access_token()
+    await update_token()
+
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+
